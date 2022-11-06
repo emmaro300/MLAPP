@@ -1,0 +1,11 @@
+name: mlapp
+title:
+username:
+account: researchquarters
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 7493455
+bundleId: 6476494
+url: https://researchquarters.shinyapps.io/mlapp/
+when: 1667610742.40178
+lastSyncTime: 1667610742.4018
