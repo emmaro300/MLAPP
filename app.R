@@ -5,6 +5,32 @@ library(shiny)
 library(bslib)
 library(rsconnect)
 library(shinydashboard)
+library(shinyjs)
+library(tools)
+
+# Implement functions here
+dia_file <- modalDialog(
+  title = "Upload file", 
+  size = "s", 
+  footer = tagList(
+    modalButton("Cancel"),
+    actionButton("ok", "Ok")
+    ),
+  fileInput("ufile","Upload", placeholder = "No file selected")
+  
+    )
+# Validate file input function
+valid <- function(){
+  req(input$ufile)
+  extn <- file_ext(input$ufile$name)
+  if(extn=="csv"||extn=="tiff"||extn=="shp"){
+    file_df <- read.csv(input$ufile$datapath)
+    print(paste0("File:",input$ufile$name,"successfully uploaded"))
+  }
+  else {
+    validate("Invalid file; please upload a .csv, .tiff or .shp file")
+  }
+}
 
 # Define UI for Machine Learning application 
 
@@ -13,11 +39,12 @@ library(shinydashboard)
     
     sidebar = dashboardSidebar(
       sidebarMenu(
-        menuItem(
+        id = "dash",
+        menuItem( 
         "File", 
         tabName = "file",
-          menuSubItem(text = "New", tabName = "new"),
-          menuSubItem(text = "Open", tabName = "open"),
+          menuSubItem(text = "Upload", tabName = "new",selected = FALSE),
+          menuSubItem(text = "Open", tabName = "open", selected = TRUE),
           menuSubItem(text = "Save As", tabName = "save_as"),
           menuSubItem(text = "Save", tabName = "save"),
           menuSubItem(text = "Exit", tabName = "save"),
@@ -109,18 +136,73 @@ library(shinydashboard)
     )
   )
 ),
-  
     body = dashboardBody(
-      tabItems(
-        tabItem("hi")
-      )
+      
+      uiOutput("di_file"),
+      h2(verbatimTextOutput("prt")),
+      tableOutput("view")
+      
     )
-  )
+)
 
 # Define server logic required to run ML model
-server <- function(input, output) {
+server <- function(input, output,session){
+  #Observe file upload
+ observeEvent( input$dash,{
+   if(input$dash == "new"){
+     showModal( 
+     modalDialog(
+      title = "Upload File",
+     size = "s", 
+    footer = tagList(
+    modalButton("Cancel"),
+     actionButton("preview","Preview"),
+    actionButton("ok", "Ok")
+     ),
+    fileInput("ufile",NULL, buttonLabel = "Upload", placeholder = "only .csv, .tiff and .shp files", accept = c(".csv",".tiff",".shp"))
+   
+     )
+   )
+    }
+ }
+ )
   
-} 
+  ## React to preview event
+  f_preview <- eventReactive(input$preview,{
+    req(input$ufile)
+    extn <- file_ext(input$ufile$name)
+    if(extn=="csv"||extn=="tiff"||extn=="shp"){
+      file_df <- read.csv(input$ufile$datapath)
+      head(file_df)
+      
+    }else {
+      validate("Invalid file; please upload a .csv, .tiff or .shp file")
+    }
+  }
+  )
+  ##React to ok event
+  f_ok <- eventReactive(input$ok,{
+    req(input$ufile)
+    extn <- file_ext(input$ufile$name)
+    if(extn=="csv"||extn=="tiff"||extn=="shp"){
+      file_df <- read.csv(input$ufile$datapath)
+      print(paste0("File:",input$ufile$name,"successfully uploaded"))
+    }else {
+       validate("Invalid file; please upload a .csv, .tiff or .shp file")
+    }
+  }
+  )
+  
+  #Display results
+  output$prt <- renderPrint(
+    f_ok()
+  )
+  output$view<- renderTable(
+    f_preview()
+  )
+  
+}
+
 
 # Run the application 
 shinyApp(ui = ui, server = server)
